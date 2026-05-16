@@ -5,6 +5,7 @@ import connectDB from './config/db';
 import { errorHandler } from './middleware/errorMiddleware';
 import userRoutes from './routes/userRouter';
 import categoryRoutes from './routes/categoryRouter';
+import promptRoutes from './routes/promptRouter';
 
 // 1. הגדרות בסיסיות
 dotenv.config();
@@ -19,6 +20,7 @@ app.use(cors()); // מאפשר ל-Frontend לדבר עם ה-Backend
 app.use(express.json()); // מאפשר לשרת לקרוא JSON מהבקשות
 app.use('/api/users', userRoutes)
 app.use('/api/categories', categoryRoutes);
+app.use('/api/prompts', promptRoutes);
 // 4. בדיקת דופק (Health Check)
 app.get('/', (req, res) => {
     res.send('API is running...');
