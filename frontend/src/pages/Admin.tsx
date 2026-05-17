@@ -1,167 +1,130 @@
 import React, { useState, useEffect } from 'react';
-import { getCategories, createCategory, createSubCategory } from '../services/api';
+import axios from 'axios';
 
-interface IdNamePair {
-  _id: string;
-  name: string;
-}
+interface Category { _id: string; name: string; }
 
-interface AdminProps {
-  onBackToChat: () => void;
-}
-
-export default function Admin({ onBackToChat }: AdminProps) {
-  const [categories, setCategories] = useState<IdNamePair[]>([]);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newSubCategoryName, setNewSubCategoryName] = useState('');
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+export default function Admin({ onBackToChat }: { onBackToChat: () => void }) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [catName, setCatName] = useState('');
+  const [subName, setSubName] = useState('');
+  const [selectedCatId, setSelectedCatId] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  // טעינת הקטגוריות הקיימות מיד כשהמסך עולה
-  useEffect(() => {
-    loadCategories();
-  }, []);
+  const load = () => axios.get('http://localhost:5000/api/categories')
+    .then(r => setCategories(r.data))
+    .catch(() => notify('שגיאה בטעינת קטגוריות', true));
+  useEffect(() => { load(); }, []);
 
-  const loadCategories = async () => {
-    try {
-      const res = await getCategories();
-      if (res.success) {
-        setCategories(res.data);
-      }
-    } catch (err) {
-      console.error("Failed to load categories", err);
-    }
+  const notify = (msg: string, isError = false) => {
+    isError ? setError(msg) : setMessage(msg);
+    setTimeout(() => { setMessage(''); setError(''); }, 3000);
   };
 
-  // 1. הוספת קטגוריה ראשית חדשה
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim()) return;
-
-    setMessage('');
-    setError('');
-
     try {
-      const res = await createCategory(newCategoryName);
-      if (res.success) {
-        setMessage(`הקטגוריה הראשית "${newCategoryName}" נוצרה בהצלחה!`);
-        setNewCategoryName('');
-        loadCategories(); // רענון תיבת הבחירה כדי שהקטגוריה החדשה תופיע מיד
-      }
+      await axios.post('http://localhost:5000/api/categories', { name: catName });
+      notify(`קטגוריה "${catName}" נוצרה בהצלחה ✅`);
+      setCatName('');
+      load();
     } catch (err: any) {
-      setError(err.response?.data?.message ?? 'שגיאה ביצירת קטגוריה ראשית');
+      notify(err.response?.data?.message ?? 'שגיאה ביצירת קטגוריה', true);
     }
   };
 
-  // 2. הוספת תת-קטגוריה חדשה
   const handleAddSubCategory = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubCategoryName.trim() || !selectedCategoryId) {
-      alert("אנא בחרי קטגוריה ראשית והקלידי שם לתת-הקטגוריה");
-      return;
-    }
-
-    setMessage('');
-    setError('');
-
+    if (!selectedCatId) { notify('יש לבחור קטגוריה ראשית', true); return; }
     try {
-      const res = await createSubCategory(selectedCategoryId, newSubCategoryName);
-      if (res.success) {
-        setMessage(`תת-הקטגוריה "${newSubCategoryName}" נוצרה בהצלחה!`);
-        setNewSubCategoryName('');
-      }
+      await axios.post('http://localhost:5000/api/categories/sub', { name: subName, category_id: selectedCatId });
+      notify(`תת-קטגוריה "${subName}" נוצרה בהצלחה ✅`);
+      setSubName('');
+      setSelectedCatId('');
     } catch (err: any) {
-      setError(err.response?.data?.message ?? 'שגיאה ביצירת תת-קטגוריה');
+      notify(err.response?.data?.message ?? 'שגיאה ביצירת תת-קטגוריה', true);
     }
   };
 
   return (
-    <div style={{ 
-      maxWidth: 600, 
-      margin: '3rem auto', 
-      padding: '2.5rem', 
-      border: '1px solid #e0e0e0', 
-      borderRadius: 12, 
-      fontFamily: 'Arial, sans-serif', 
-      direction: 'rtl', 
-      backgroundColor: '#ffffff',
-      boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
-    }}>
-      
-      {/* כותרת וכפתור חזרה */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', borderBottom: '2px solid #f0f0f0', paddingBottom: '1rem' }}>
-        <h2 style={{ margin: 0, color: '#333' }}>פאנל ניהול קטגוריות 🛠️</h2>
-        <button 
-          onClick={onBackToChat} 
-          style={{ padding: '10px 20px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          חזרה לצ'אט 💬
-        </button>
-      </div>
+    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
 
-      {/* הודעות הצלחה או שגיאה */}
-      {message && <div style={{ padding: '12px', backgroundColor: '#d4edda', color: '#155724', borderRadius: 6, marginBottom: '1.5rem', fontWeight: 'bold' }}>{message}</div>}
-      {error && <div style={{ padding: '12px', backgroundColor: '#f8d7da', color: '#721c24', borderRadius: 6, marginBottom: '1.5rem', fontWeight: 'bold' }}>{error}</div>}
-
-      {/* חלק א': יצירת קטגוריה ראשית */}
-      <div style={{ backgroundColor: '#f9f9f9', padding: '1.5rem', borderRadius: 8, border: '1px solid #eee', marginBottom: '2rem' }}>
-        <h3 style={{ marginTop: 0, color: '#444' }}>1. הוספת נושא ראשי (קטגוריה ראשית)</h3>
-        <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '10px' }}>
-          <input 
-            type="text" 
-            placeholder="למשל: תכנות, רפואה, פיננסים..." 
-            value={newCategoryName}
-            onChange={e => setNewCategoryName(e.target.value)}
-            style={{ flex: 1, padding: '12px', borderRadius: 6, border: '1px solid #ccc', fontSize: '15px' }}
-            required
-          />
-          <button type="submit" style={{ padding: '12px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}>
-            הוסף קטגוריה
+      {/* Sidebar */}
+      <aside style={{
+        width: 240, background: '#1e1b4b', color: '#c7d2fe',
+        display: 'flex', flexDirection: 'column', padding: '24px 0', flexShrink: 0
+      }}>
+        <div style={{ padding: '0 20px 24px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>🎓 LearnAI</div>
+        </div>
+        <nav style={{ padding: '16px 12px', flex: 1 }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+            borderRadius: 8, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', fontSize: 14, fontWeight: 500
+          }}>
+            <span>🛠️</span> Admin
+          </div>
+        </nav>
+        <div style={{ padding: '16px 12px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <button onClick={onBackToChat} style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 12px', borderRadius: 8, border: 'none',
+            background: 'transparent', color: '#a5b4fc', fontSize: 14, fontWeight: 500, cursor: 'pointer'
+          }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <span>←</span> חזרה ל-Dashboard
           </button>
-        </form>
-      </div>
+        </div>
+      </aside>
 
-      {/* חלק ב': יצירת תת-קטגוריה */}
-      <div style={{ backgroundColor: '#f9f9f9', padding: '1.5rem', borderRadius: 8, border: '1px solid #eee' }}>
-        <h3 style={{ marginTop: 0, color: '#444' }}>2. הוספת תת נושא (תת-קטגוריה)</h3>
-        <form onSubmit={handleAddSubCategory} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#555' }}>תחת איזה נושא ראשי לשייך?</label>
-            <select 
-              value={selectedCategoryId} 
-              onChange={e => setSelectedCategoryId(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: 6, border: '1px solid #ccc', fontSize: '15px', backgroundColor: '#fff' }}
-              required
-            >
-              <option value="">-- בחרי קטגוריה מהרשימה --</option>
-              {categories.map(cat => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </select>
+      {/* Main */}
+      <main style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+        <div style={{ maxWidth: 640 }}>
+          <div style={{ marginBottom: 28 }}>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>פאנל ניהול 🛠️</h1>
+            <p style={{ color: '#94a3b8', fontSize: 14 }}>הוסף קטגוריות ותת-קטגוריות למערכת</p>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#555' }}>שם תת-הנושא החדש:</label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <input 
-                type="text" 
-                placeholder="למשל: TypeScript, אנטומיה, משכנתא..." 
-                value={newSubCategoryName}
-                onChange={e => setNewSubCategoryName(e.target.value)}
-                style={{ flex: 1, padding: '12px', borderRadius: 6, border: '1px solid #ccc', fontSize: '15px' }}
-                required
-              />
-              <button type="submit" style={{ padding: '12px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontWeight: 'bold' }}>
-                הוסף תת-נושא
-              </button>
-            </div>
+          {message && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', padding: '12px 16px', borderRadius: 10, marginBottom: 20, fontSize: 14, fontWeight: 500 }}>{message}</div>}
+          {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '12px 16px', borderRadius: 10, marginBottom: 20, fontSize: 14, fontWeight: 500 }}>{error}</div>}
+
+          {/* Add Category */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', marginBottom: 20, direction: 'rtl' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>➕ הוספת נושא ראשי</h2>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>למשל: מתמטיקה, פיזיקה, היסטוריה</p>
+            <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: 10 }}>
+              <input value={catName} onChange={e => setCatName(e.target.value)} placeholder="שם הנושא הראשי" required style={{ ...inputStyle, flex: 1 }} />
+              <button type="submit" style={{ ...btnStyle('#6366f1'), whiteSpace: 'nowrap', padding: '10px 20px' }}>הוסף</button>
+            </form>
           </div>
 
-        </form>
-      </div>
-
+          {/* Add SubCategory */}
+          <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 2px 12px rgba(0,0,0,0.06)', direction: 'rtl' }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>➕ הוספת תת-נושא</h2>
+            <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 16 }}>למשל: אנליזה, אלגברה (תחת מתמטיקה)</p>
+            <form onSubmit={handleAddSubCategory} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <select value={selectedCatId} onChange={e => setSelectedCatId(e.target.value)} required style={inputStyle}>
+                <option value="">-- בחר קטגוריה ראשית --</option>
+                {categories.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+              </select>
+              <input value={subName} onChange={e => setSubName(e.target.value)} placeholder="שם תת-הקטגוריה" required style={inputStyle} />
+              <button type="submit" style={btnStyle('#8b5cf6')}>הוסף תת-קטגוריה</button>
+            </form>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }
+
+const inputStyle: React.CSSProperties = {
+  padding: '10px 14px', borderRadius: 10, border: '1.5px solid #e2e8f0',
+  fontSize: 14, color: '#0f172a', background: '#f8fafc', outline: 'none', width: '100%'
+};
+
+const btnStyle = (bg: string): React.CSSProperties => ({
+  padding: '11px', borderRadius: 10, border: 'none',
+  background: bg, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer'
+});

@@ -29,7 +29,7 @@ export const sendPrompt = async (payload: SendPromptPayload) => {
  */
 export const getUserHistory = async (userId: string) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/prompts/user/${userId}`);
+    const response = await axios.get(`${API_BASE_URL}/prompts/history/${userId}`);
     return response.data; // מחזיר מערך של כל השאלות שהמשתמש שאל בעבר
   } catch (error) {
     console.error('Error in getUserHistory:', error);
@@ -62,6 +62,7 @@ export const getSubCategories = async (categoryId: string) => {
     throw error;
   }
 };
+
 /**
  * 5. יצירת קטגוריה ראשית חדשה (עבור מנהל)
  */
@@ -87,6 +88,32 @@ export const createSubCategory = async (categoryId: string, name: string) => {
     return response.data;
   } catch (error) {
     console.error('Error creating subcategory:', error);
+    throw error;
+  }
+};
+
+/**
+ * 7. התחברות משתמש קיים
+ */
+export const loginUser = async (credentials: { email: string; phone: string; password?: string }) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/users/login`, credentials);
+    return response.data; 
+  } catch (error) {
+    console.error('Error logging in:', error);
+    throw error;
+  }
+};
+
+/**
+ * 8. רישום משתמש חדש במערכת 🌟 (היה חסר!)
+ */
+export const registerUser = async (userData: { name: string; email: string; phone: string ,password?:string,role?:string}) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/users/register`, userData);
+    return response.data; // מחזיר את נתוני המשתמש החדש שנוצר
+  } catch (error) {
+    console.error('Error in registerUser:', error);
     throw error;
   }
 };

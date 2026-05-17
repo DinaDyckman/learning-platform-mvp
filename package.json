@@ -2,8 +2,12 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "axios": "^1.16.1",
+    "canvas-confetti": "^1.9.4",
     "openai": "^6.37.0",
     "react": "^19.2.6",
     "react-router-dom": "^7.15.1"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0"
   }
 }

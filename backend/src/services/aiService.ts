@@ -8,7 +8,7 @@ dotenv.config();
 
 // אתחול OpenAI עם המפתח מה-.env
 const openai = new OpenAI({
-    apiKey: process.env.GEMINI_API_KEY, 
+    apiKey: process.env.GPT_API_KEY, 
 });
 
 /**

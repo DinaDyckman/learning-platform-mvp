@@ -9,6 +9,10 @@ export const createSubCategory = async (name: string, category_id: string) => {
     return await SubCategory.create({ name, category_id });
 };
 
+export const getSubCategoriesByCategoryId = async (category_id: string) => {
+    return await SubCategory.find({ category_id });
+};
+
 export const getAllCategories = async () => {
     // populate('subCategories') יעבוד אם נגדיר virtuals, אבל כרגע פשוט נביא את הקטגוריות
     return await Category.find();
